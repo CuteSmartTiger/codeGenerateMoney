@@ -4,13 +4,11 @@ import okx.MarketData as MarketData
 
 import requests
 import json
-import time
 import pandas as pd
 
 
 flag = "0"  # 实盘:0 , 模拟盘：1
-
-from config import get_settings
+from app.config import get_settings
 
 settings = get_settings()
 
@@ -56,10 +54,32 @@ def meet_strategy_one(k_data_df):
 
     return True
 
-if __name__ == '__main__':
-    instIds =["BTC-USDT","ETH-USDT","LTC-USDT","OKB-USDT","DOGE-USDT",
-              "AVAX-USDT","ADA-USDT","BNB-USDT","AIDOGE-USDT","SOL-USDT",
-              "LTC-USDT"]
+
+
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+import asyncio
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ✅ 启动时：启动后台任务
+    task = asyncio.create_task(background_worker())
+
+    yield  # <-- 应用运行中
+
+    # ✅ 关闭时：取消任务
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        print("后台任务被取消")
+
+app = FastAPI(lifespan=lifespan)
+
+async def background_worker():
+    instIds = ["BTC-USDT", "ETH-USDT", "LTC-USDT", "OKB-USDT", "DOGE-USDT",
+               "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT",
+               "LTC-USDT"]
     while True:
         for instId in instIds:
             # instId = "BTC-USDT"
@@ -67,17 +87,21 @@ if __name__ == '__main__':
             df = calculate_index_data(data)
             # print(df)
             # if  df['M'][0:3].min() > 0 and (df['M'][0] > df['M'][1]):
-            if  meet_strategy_one(df):
-                body_data = {'instId':instId,
-                             'bar':'1H',
-                             'M':json.loads(df.to_json())['M']
+            if meet_strategy_one(df):
+                body_data = {'instId': instId,
+                             'bar': '1H',
+                             'M': json.loads(df.to_json())['M']
                              }
                 print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}有上涨趋势".format(instId))
                 trigger_lark(body_data)
             else:
-                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),"{}没有上涨趋势".format(instId))
+                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}没有上涨趋势".format(instId))
 
-            time.sleep(2)
+            await asyncio.sleep(2)
 
-        time.sleep(60*15)
+        await asyncio.sleep(60 * 15)
 
+
+@app.get("/")
+async def read_root():
+    return {"message": "Hello from FastAPI + lifespan!"}
