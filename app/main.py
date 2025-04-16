@@ -78,8 +78,7 @@ app = FastAPI(lifespan=lifespan)
 
 async def background_worker():
     instIds = ["BTC-USDT", "ETH-USDT", "LTC-USDT", "OKB-USDT", "DOGE-USDT",
-               "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT",
-               "LTC-USDT"]
+               "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT"]
     while True:
         for instId in instIds:
             # instId = "BTC-USDT"
