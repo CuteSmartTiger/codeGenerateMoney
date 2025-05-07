@@ -18,7 +18,7 @@ marketDataAPI =  MarketData.MarketAPI(flag=flag)
 columns = ['ts', 'o', 'h', 'l', 'c', 'confirm']
 
 
-def get_index_data(index, limit='6', bar='1H'):
+def get_index_data(index, limit='5', bar='4H'):
     # 获取指数K线数据
     result = marketDataAPI.get_index_candlesticks(instId=index, limit=limit, bar=bar)
     # 原始数据
@@ -45,11 +45,11 @@ def trigger_lark(body):
 
 
 def meet_strategy_one(k_data_df):
-    if  not k_data_df['M'][0:2].min() > 0:
+    if  not k_data_df['M'][0:1].min() > 0:
     #     若最近两个 K 线 bar 有一个是跌的，则不满足上涨趋势
         return False
 
-    if not k_data_df['M'][2:6].max() < 0:
+    if not k_data_df['M'][1:5].max() < 0:
         return False
 
     return True
@@ -80,25 +80,29 @@ async def background_worker():
     instIds = ["BTC-USDT", "ETH-USDT", "LTC-USDT", "OKB-USDT", "DOGE-USDT",
                "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT"]
     while True:
-        for instId in instIds:
-            # instId = "BTC-USDT"
-            data = get_index_data(instId)
-            df = calculate_index_data(data)
-            # print(df)
-            # if  df['M'][0:3].min() > 0 and (df['M'][0] > df['M'][1]):
-            if meet_strategy_one(df):
-                body_data = {'instId': instId,
-                             'bar': '1H',
-                             'M': json.loads(df.to_json())['M']
-                             }
-                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}有上涨趋势".format(instId))
-                trigger_lark(body_data)
-            else:
-                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}没有上涨趋势".format(instId))
+        try:
+            for instId in instIds:
+                print("循环中",instId)
+                # instId = "BTC-USDT"
+                data = get_index_data(instId)
+                df = calculate_index_data(data)
+                # print(df)
+                # if  df['M'][0:3].min() > 0 and (df['M'][0] > df['M'][1]):
+                if meet_strategy_one(df):
+                    body_data = {'instId': instId,
+                                 'bar': '4H',
+                                 'M': json.loads(df.to_json())['M']
+                                 }
+                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}有上涨趋势".format(instId))
+                    trigger_lark(body_data)
+                else:
+                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}没有上涨趋势".format(instId))
+                await asyncio.sleep(2)
+        except Exception as e:
+            print(e)
 
-            await asyncio.sleep(2)
+        await asyncio.sleep(60*15)
 
-        await asyncio.sleep(60 * 15)
 
 
 @app.get("/")
