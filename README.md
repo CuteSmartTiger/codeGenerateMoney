@@ -9,3 +9,7 @@
  • WebSocket公共频道：wss://ws.okx.com:8443/ws/v5/public
  • WebSocket私有频道：wss://ws.okx.com:8443/ws/v5/private • WebSocket业务频道：wss://ws.okx.com:8443/ws/v5/business  模拟盘交易 目前可以进行V5 API的模拟盘交易，部分功能不支持如提币、充值、申购赎回等。 模拟盘API交易地址如下： • REST：https://www.okx.com • WebSocket公共频道：wss://wspap.okx.com:8443/ws/v5/public
  • WebSocket私有频道：wss://wspap.okx.com:8443/ws/v5/private • WebSocket业务频道：wss://wspap.okx.com:8443/ws/v5/business
+
+
+# 服务启动
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --loop asyncio

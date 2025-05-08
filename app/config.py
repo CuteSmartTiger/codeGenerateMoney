@@ -8,6 +8,7 @@ load_dotenv()
 
 class Settings(BaseSettings):
     LARK_URL: str
+    PORT: int = 5000
 
     class Config:
         env_file = "../.env"

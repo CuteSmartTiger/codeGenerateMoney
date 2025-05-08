@@ -74,6 +74,8 @@ async def lifespan(app: FastAPI):
         await task
     except asyncio.CancelledError:
         print("后台任务被取消")
+    except Exception as e:
+        print("任务取消异常原因{}".format(e))
 
 app = FastAPI(lifespan=lifespan)
 
@@ -114,3 +116,8 @@ async def read_root():
 @app.get("/healthz")
 def health_check():
     return JSONResponse(content={"status": "ok"})
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=settings.PORT)
