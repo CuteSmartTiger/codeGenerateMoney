@@ -1,6 +1,7 @@
 import datetime
 
 import okx.MarketData as MarketData
+from fastapi.responses import JSONResponse
 
 import requests
 import json
@@ -108,3 +109,8 @@ async def background_worker():
 @app.get("/")
 async def read_root():
     return {"message": "Hello from FastAPI + lifespan!"}
+
+
+@app.get("/healthz")
+def health_check():
+    return JSONResponse(content={"status": "ok"})
