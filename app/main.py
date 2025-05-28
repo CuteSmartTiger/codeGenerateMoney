@@ -18,9 +18,10 @@ has_trigger ={}
 
 def trigger_lark(body,remove_duplicates=True):
     if remove_duplicates:
-        if not body['timeId'] in has_trigger:
+        key = "{}-{}".format(body['timeId'], body['instId'])
+        if not key in has_trigger:
             requests.post(url=settings.LARK_URL, json=body, headers={'Content-Type': 'application/json'})
-            has_trigger[body['timeId']] = True
+            has_trigger[key] = True
 
 
 from fastapi import FastAPI
