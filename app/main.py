@@ -1,27 +1,9 @@
-import datetime
-
-
 from fastapi.responses import JSONResponse
 
-import requests
-import json
-
-from app.real_data.okex import get_index_data,calculate_index_data,meet_strategy_one
-
-
+from app.execution.execution import Execution
 from app.config import get_settings
 
 settings = get_settings()
-
-
-has_trigger ={}
-
-def trigger_lark(body,remove_duplicates=True):
-    if remove_duplicates:
-        key = "{}-{}".format(body['timeId'], body['instId'])
-        if not key in has_trigger:
-            requests.post(url=settings.LARK_URL, json=body, headers={'Content-Type': 'application/json'})
-            has_trigger[key] = True
 
 
 from fastapi import FastAPI
@@ -47,39 +29,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 async def background_worker():
-    instIds = ["BTC-USDT", "ETH-USDT", "LTC-USDT", "OKB-USDT", "DOGE-USDT",
-               "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT",
-               "APT-USDT","EIGEN-USDT"]
     while True:
-        try:
-            for instId in instIds:
-                print("循环中",instId)
-                data = get_index_data(instId)
-                df = calculate_index_data(data)
-                if meet_strategy_one(df):
-                    msg = "{} {} 有上涨趋势 ".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), instId)
-                    body_data = {'instId': instId,
-                                 'bar': '4H',
-                                 'timeId':df['beijing'].iloc[0],
-                                 'profit': json.loads(df.to_json())['profit'],
-                                 'amplitudeRatio':json.loads(df.to_json())['amplitudeRatio'],
-                                 'msg':msg
-                                 }
-
-                    trigger_lark(body_data)
-                else:
-                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{} 没有上涨趋势".format(instId))
-                await asyncio.sleep(2)
-        except Exception as e:
-            print(e)
-
+        Execution.execute("strategy_one")
         await asyncio.sleep(60*15)
 
 
 
 @app.get("/")
-async def read_root():
-    return {"message": "Hello from FastAPI + lifespan!"}
+async def read_strategy(name: str):
+    return {"message": "Hello from FastAPI + lifespan!,strategy name is {}".format(name)}
 
 
 @app.get("/healthz")

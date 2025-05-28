@@ -21,3 +21,7 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+indexIds = ["BTC-USDT", "ETH-USDT", "LTC-USDT", "OKB-USDT", "DOGE-USDT",
+           "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT",
+           "APT-USDT", "EIGEN-USDT"]
