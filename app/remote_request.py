@@ -6,7 +6,7 @@ url = "https://codegeneratemoney.onrender.com/"
 
 if __name__ == '__main__':
     while True:
-        response = requests.get(url)
+        response = requests.get(url,data={'name':'strategy_one'})
         if response.status_code == 200:
             print(datetime.now(),response.text)
         else:
