@@ -1,60 +1,26 @@
 import datetime
 
-import okx.MarketData as MarketData
+
 from fastapi.responses import JSONResponse
 
 import requests
 import json
-import pandas as pd
+
+from app.real_data.okex import get_index_data,calculate_index_data,meet_strategy_one
 
 
-flag = "0"  # 实盘:0 , 模拟盘：1
 from app.config import get_settings
 
 settings = get_settings()
 
-marketDataAPI =  MarketData.MarketAPI(flag=flag)
 
-# 定义列名
-columns = ['ts', 'o', 'h', 'l', 'c', 'confirm']
+has_trigger ={}
 
-
-def get_index_data(index, limit='5', bar='4H'):
-    # 获取指数K线数据
-    result = marketDataAPI.get_index_candlesticks(instId=index, limit=limit, bar=bar)
-    # 原始数据
-    return result['data']
-
-
-def calculate_index_data(index_data):
-    # 创建DataFrame
-    df = pd.DataFrame(index_data, columns=columns)
-
-    # 转换数值列的类型
-    numeric_cols = ['o', 'h', 'l', 'c']
-    df[numeric_cols] = df[numeric_cols].astype(float)
-    df['confirm'] = df['confirm'].astype(int)
-
-    # 计算收益M和振幅Z
-    df['M'] = df['c'] - df['o']  # 收益 = 收盘价 - 开盘价
-    df['Z'] = df['M'] / df['o']  # 振幅 = 收益 / 开盘价
-    return df
-
-
-def trigger_lark(body):
-    requests.post(url=settings.LARK_URL, json=body, headers={'Content-Type': 'application/json'})
-
-
-def meet_strategy_one(k_data_df):
-    if  not k_data_df['M'][0:1].min() > 0:
-    #     若最近两个 K 线 bar 有一个是跌的，则不满足上涨趋势
-        return False
-
-    if not k_data_df['M'][1:5].max() < 0:
-        return False
-
-    return True
-
+def trigger_lark(body,remove_duplicates=True):
+    if remove_duplicates:
+        if not body['timeId'] in has_trigger:
+            requests.post(url=settings.LARK_URL, json=body, headers={'Content-Type': 'application/json'})
+            has_trigger[body['timeId']] = True
 
 
 from fastapi import FastAPI
@@ -81,25 +47,27 @@ app = FastAPI(lifespan=lifespan)
 
 async def background_worker():
     instIds = ["BTC-USDT", "ETH-USDT", "LTC-USDT", "OKB-USDT", "DOGE-USDT",
-               "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT"]
+               "AVAX-USDT", "ADA-USDT", "BNB-USDT", "AIDOGE-USDT", "SOL-USDT",
+               "APT-USDT","EIGEN-USDT"]
     while True:
         try:
             for instId in instIds:
                 print("循环中",instId)
-                # instId = "BTC-USDT"
                 data = get_index_data(instId)
                 df = calculate_index_data(data)
-                # print(df)
-                # if  df['M'][0:3].min() > 0 and (df['M'][0] > df['M'][1]):
                 if meet_strategy_one(df):
+                    msg = "{} {} 有上涨趋势 ".format(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), instId)
                     body_data = {'instId': instId,
                                  'bar': '4H',
-                                 'M': json.loads(df.to_json())['M']
+                                 'timeId':df['beijing'].iloc[0],
+                                 'profit': json.loads(df.to_json())['profit'],
+                                 'amplitudeRatio':json.loads(df.to_json())['amplitudeRatio'],
+                                 'msg':msg
                                  }
-                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}有上涨趋势".format(instId))
+
                     trigger_lark(body_data)
                 else:
-                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{}没有上涨趋势".format(instId))
+                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "{} 没有上涨趋势".format(instId))
                 await asyncio.sleep(2)
         except Exception as e:
             print(e)
