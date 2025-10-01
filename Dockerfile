@@ -2,16 +2,16 @@
 FROM python:3.11-slim
 
 # 设置工作目录
-WORKDIR /app
+WORKDIR /
 
 # 复制依赖文件
-COPY app/requirements.txt /app/
+COPY app/requirements.txt /
 
 # 安装依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用程序代码
-COPY app /app
+COPY app/ /app/
 
 # 暴露端口
 EXPOSE 8000
