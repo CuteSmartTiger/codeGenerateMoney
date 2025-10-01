@@ -5,13 +5,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # 复制依赖文件
-COPY requirements.txt /app/
+COPY app/requirements.txt /app/
 
 # 安装依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用程序代码
-COPY . /app
+COPY app /app
 
 # 暴露端口
 EXPOSE 8000
